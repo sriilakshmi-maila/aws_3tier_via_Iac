@@ -1,35 +1,68 @@
+name: Java GitOps CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  AWS_REGION: ap-south-1                  
+  ECR_REPOSITORY: java-app-production     
+  ECS_SERVICE: java-app-service           
+  ECS_CLUSTER: production-ecs-cluster     
+  ECS_TASK_DEFINITION: .aws/task-def.json 
+
+jobs:
+  ci-quality-and-build:
+    name: Continuous Integration & Security Auditing
+    runs-on: ubuntu-latest
+
     steps:
-    # 1. Pull down the application code
-    - name: Checkout Source Code
-      uses: actions/checkout@v4
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
 
-    # 2. Set up Java environment for compilation (Upgraded to v5, cache removed)
-    - name: Set up JDK 17
-      uses: actions/setup-java@v5
-      with:
-        java-version: '17'
-        distribution: 'temurin'
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          java-version: '17'
+          distribution: 'temurin'
 
-    # 3. Simulate Build and Package (Prevents build failure without source code)
-    - name: Simulate Build and Package with Maven
-      run: |
-        echo "Building and packaging application artifacts..."
-        mkdir -p target
-        echo "Mock application jar contents" > target/app.jar
+      - name: Simulate Build and Package with Maven
+        run: |
+          echo "Building and packaging application artifacts..."
+          mkdir -p target
+          echo "Mock application jar contents" > target/app.jar
 
-    # 4. Lint and verify code metrics
-    - name: Code Quality Gate (SonarQube Scan Simulation)
-      run: echo "Executing SonarQube structural analysis... Quality Gate Passed!"
+      - name: Code Quality Gate (SonarQube Scan Simulation)
+        run: echo "Executing SonarQube structural analysis... Quality Gate Passed!"
 
-    # 5. Build local container image
-    - name: Build Docker Container Image
-      run: docker build -t ${{ env.ECR_REPOSITORY }}:${{ github.sha }} .
+      - name: Build Docker Container Image
+        run: docker build -t ${{ env.ECR_REPOSITORY }}:${{ github.sha }} .
 
-    # 6. Security Vulnerability Scan via Trivy
-    - name: Security Vulnerability Scan via Trivy
-      uses: aquasecurity/trivy-action@master
-      with:
-        image-ref: '${{ env.ECR_REPOSITORY }}:${{ github.sha }}'
-        format: 'table'
-        exit-code: '0'
-        severity: 'CRITICAL,HIGH'
+      - name: Security Vulnerability Scan via Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ env.ECR_REPOSITORY }}:${{ github.sha }}'
+          format: 'table'
+          exit-code: '0'
+          severity: 'CRITICAL,HIGH'
+
+  cd-aws-deployment:
+    name: Continuous Delivery to AWS Cloud
+    needs: ci-quality-and-build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS IAM Credentials
+        run: echo "Simulating cloud authentication token exchange..."
+
+      - name: Log in to ECR & Push Image
+        run: echo "Simulating secure image upload to AWS ECR..."
+
+      - name: Deploy Updated Task to Amazon ECS Service
+        run: echo "Simulating dynamic rolling update deployment on ECS cluster..."
